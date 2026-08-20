@@ -21,6 +21,12 @@ typedef struct Token
     enum type type;
     int value;
 } Token;
+typedef struct doubleNode
+{
+    struct Token token;
+    DoubleNode *left;
+    DoubleNode *right;
+} DoubleNode;
 
 void printToken(Token token)
 {
@@ -126,6 +132,51 @@ Token *tokenizeString(char *input)
     return first;
 }
 
+DoubleNode createTree(Token *tokenized)
+{
+    DoubleNode toreturn = doAddSub(tokenized);
+    return toreturn;
+}
+int tokenLength(Token *tokenptr)
+{
+    int counter = 0;
+    while (tokenptr->type != endexp)
+    {
+        counter++;
+        tokenptr++;
+    }
+    return counter;
+}
+DoubleNode doAddSub(Token *expression)
+{
+    Token *ptr = expression;
+    DoubleNode root;
+    while (ptr->type != endexp)
+    {
+        if (ptr->type == subtract || ptr->type == addition)
+        {
+            root.token.type = ptr->type;
+
+            Token *leftExp = malloc(ptr - expression + sizeof(Token));
+            memcpy(leftExp, expression, ptr - expression);
+            Token *endpointer = leftExp + (ptr - expression);
+            endpointer->type = endexp;
+            size_t size = expression + tokenLength(expression) * sizeof(Token) - ptr;
+            Token *rightExp = malloc(size);
+            memcpy(rightExp, ptr + sizeof(Token),size-sizeof(Token));
+            Token *endpointer = rightExp + size - sizeof(Token);
+            endpointer->type = endexp;
+            // Token leftExp[ptr - expression+1];
+
+            // for (int i = 0;i<sizeof(leftExp)/sizeof(Token)-1;i++) {
+            //     leftExp[i] = *(expression + i*sizeof(Token));
+            // }
+
+            // Token rightExp[expression+(tokenLength(expression)*sizeof(Token)+1) - ptr];
+        }
+        ptr++;
+    }
+}
 int main()
 {
     char input[100];
