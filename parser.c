@@ -328,7 +328,6 @@ DoubleNode *doParenPow(Token *expression, DoubleNode *root)
         {
             Token *temptr = ptr + 1;
             int parenCount = 0;
-            root->token.type = left_paren;
             while (temptr->type != right_paren || parenCount != 0)
             {
                 if (temptr->type == left_paren)
@@ -345,10 +344,9 @@ DoubleNode *doParenPow(Token *expression, DoubleNode *root)
             Token *leftExp = malloc((temptr - ptr) * sizeof(Token));
             memcpy(leftExp, ptr + 1, (temptr - ptr) * sizeof(Token) - sizeof(Token));
             Token *endpointer = leftExp + (temptr - ptr);
-            printf("fitst %p last %p",leftExp,endpointer);
+            printf("fitst %p last %p", leftExp, endpointer);
             endpointer->type = endexp;
             root->left = Node();
-            root->left = doAddSub(leftExp, root->left);
             if ((temptr + 1)->type == endexp)
             {
                 root->right = NULL;
@@ -366,6 +364,8 @@ DoubleNode *doParenPow(Token *expression, DoubleNode *root)
                 return root;
             }
             ptr = temptr;
+
+            root = doAddSub(leftExp, root->left);
         }
         ptr++;
     }
@@ -380,6 +380,11 @@ DoubleNode *doNumber(Token *ptr, DoubleNode *root)
         root->token.value = ptr->value;
         root->left = NULL;
         root->right = NULL;
+        return root;
+    }
+    else if (ptr->type == left_paren || ptr->type == right_paren)
+    {
+        printf("sad");
         return root;
     }
     printf("error");
