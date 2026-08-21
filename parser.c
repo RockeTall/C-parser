@@ -7,10 +7,10 @@ enum type
 {
     startexp,
     number,
-    multiply,
-    divide,
     addition,
     subtract,
+    multiply,
+    divide,
     power,
     left_paren,
     right_paren,
@@ -34,7 +34,8 @@ DoubleNode *createTree(Token *tokenized);
 int tokenLength(Token *tokenptr);
 DoubleNode *doAddSub(Token *expression, DoubleNode *root);
 DoubleNode *doMulDiv(Token *expression, DoubleNode *root);
-DoubleNode *doParenPow(Token *expression, DoubleNode *root);
+DoubleNode *doPow(Token *expression, DoubleNode *root);
+DoubleNode *doParen(Token *expression, DoubleNode *root);
 DoubleNode *doNumber(Token *expression, DoubleNode *root);
 DoubleNode *Node();
 void printExpression(Token *ptr);
@@ -52,24 +53,28 @@ DoubleNode *Node()
 
 void print2D(DoubleNode *root, int space)
 {
+    const char *types[] =
+        {
+            "startexp",
+            "number",
+            "addition",
+            "subtract",
+            "multiply",
+            "divide",
+            "power",
+            "left_paren",
+            "right_paren",
+            "endexp"};
     if (root == NULL)
         return;
-
-    // Increase distance between levels
     space += 8;
-
-    // Process right child first (top of screen)
     print2D(root->right, space);
-
-    // Print current node after padding with spaces
     printf("\n");
     for (int i = 8; i < space; i++)
     {
         printf(" ");
     }
-    printf("%d,%d\n", root->token.type, root->token.value);
-
-    // Process left child (bottom of screen)
+    printf("%s,%d\n", types[root->token.type], root->token.value);
     print2D(root->left, space);
 }
 void printToken(Token token)
@@ -78,10 +83,10 @@ void printToken(Token token)
         {
             "startexp",
             "number",
-            "multiply",
-            "divide",
             "addition",
             "subtract",
+            "multiply",
+            "divide",
             "power",
             "left_paren",
             "right_paren",
@@ -246,14 +251,6 @@ DoubleNode *doAddSub(Token *expression, DoubleNode *root)
             root->left = doMulDiv(leftExp, root->left);
             root->right = doAddSub(rightExp, root->right);
             return root;
-
-            // Token leftExp[ptr - expression+1];
-
-            // for (int i = 0;i<sizeof(leftExp)/sizeof(Token)-1;i++) {
-            //     leftExp[i] = *(expression + i*sizeof(Token));
-            // }
-
-            // Token rightExp[expression+(tokenLength(expression)*sizeof(Token)+1) - ptr];
         }
         ptr++;
     }
@@ -290,15 +287,54 @@ DoubleNode *doMulDiv(Token *expression, DoubleNode *root)
             endpointer->type = endexp;
             root->left = Node();
             root->right = Node();
-            root->left = doParenPow(leftExp, root->left);
+            root->left = doPow(leftExp, root->left);
             root->right = doMulDiv(rightExp, root->right);
             return root;
         }
         ptr++;
     }
-    return doParenPow(expression, root);
+    return doPow(expression, root);
 }
-DoubleNode *doParenPow(Token *expression, DoubleNode *root)
+DoubleNode *doPow(Token *expression, DoubleNode *root)
+{
+    Token *ptr = expression;
+    int parenCount = 0;
+    while (ptr->type != endexp)
+    {
+        if (ptr->type == left_paren)
+        {
+            parenCount++;
+        }
+        if (ptr->type == right_paren)
+        {
+            parenCount--;
+        }
+
+        if ((ptr->type == power) && parenCount == 0)
+        {
+            root->token.type = ptr->type;
+
+            Token *leftExp = malloc((ptr - expression) * sizeof(Token) + sizeof(Token));
+            printf("size %zu\n", ((ptr - expression) * sizeof(Token) + sizeof(Token)) / sizeof(Token));
+            memcpy(leftExp, expression, (ptr - expression) * sizeof(Token));
+            Token *endpointer = leftExp + (ptr - expression);
+            endpointer->type = endexp;
+            size_t size = (expression + tokenLength(expression) - ptr);
+            Token *rightExp = malloc(size * sizeof(Token));
+            memcpy(rightExp, ptr + 1, size * sizeof(Token) - sizeof(Token));
+            endpointer = rightExp + size - 1;
+            endpointer->type = endexp;
+            root->left = Node();
+            root->right = Node();
+            root->left = doParen(leftExp, root->left);
+            root->right = doPow(rightExp, root->right);
+            return root;
+        }
+        ptr++;
+    }
+    return doParen(expression, root);
+}
+DoubleNode *doParen(Token *expression, DoubleNode *root)
 {
     Token *ptr = expression;
     while (ptr->type != endexp)
@@ -312,17 +348,6 @@ DoubleNode *doParenPow(Token *expression, DoubleNode *root)
             root->left = doNumber(ptr - 1, root->left);
             root->right = doNumber(ptr + 1, root->right);
             return root;
-            // root.token.type = ptr->type;
-            // Token* tempptr = expression;
-            // Token *leftExp = malloc(ptr - expression + sizeof(Token));
-            // memcpy(leftExp, expression, ptr - expression);
-            // Token *endpointer = leftExp + (ptr - expression);
-            // endpointer->type = endexp;
-            // size_t size = expression + tokenLength(expression) * sizeof(Token) - ptr;
-            // Token *rightExp = malloc(size);
-            // memcpy(rightExp, ptr + sizeof(Token),size-sizeof(Token));
-            // Token *endpointer = rightExp + size - sizeof(Token);
-            // endpointer->type = endexp;
         }
         if (ptr->type == left_paren)
         {
@@ -360,7 +385,7 @@ DoubleNode *doParenPow(Token *expression, DoubleNode *root)
                 endpointer = rightExp + size - 1;
                 endpointer->type = endexp;
                 root->right = Node();
-                root->right = doParenPow(rightExp, root->right);
+                root->right = doParen(rightExp, root->right);
                 return root;
             }
             ptr = temptr;
