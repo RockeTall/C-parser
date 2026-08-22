@@ -39,7 +39,7 @@ DoubleNode *doParen(Token *expression, DoubleNode *root);
 DoubleNode *doNumber(Token *expression, DoubleNode *root);
 DoubleNode *Node();
 int compute(DoubleNode *root);
-int computeO(DoubleNode *root,int o);
+int computeO(DoubleNode *root, int o);
 void printExpression(Token *ptr);
 void printToken(Token token);
 
@@ -253,6 +253,7 @@ DoubleNode *doAddSub(Token *expression, DoubleNode *root)
                 root->left = Node();
                 root->left = doMulDiv(leftExp, root->left);
                 root = doAddSub(rightExp, root);
+                free(expression);
                 return root;
             }
             else
@@ -263,6 +264,7 @@ DoubleNode *doAddSub(Token *expression, DoubleNode *root)
                 root->right = Node();
                 root->right = doMulDiv(leftExp, root->right);
                 tempn = doAddSub(rightExp, tempn);
+                free(expression);
                 return tempn;
             }
 
@@ -278,6 +280,7 @@ DoubleNode *doAddSub(Token *expression, DoubleNode *root)
     {
         root->right = Node();
         root->right = doMulDiv(expression, root->right);
+        free(expression);
         return root;
     }
 }
@@ -316,6 +319,7 @@ DoubleNode *doMulDiv(Token *expression, DoubleNode *root)
                 root->left = Node();
                 root->left = doPow(leftExp, root->left);
                 root = doMulDiv(rightExp, root);
+                free(expression);
                 return root;
             }
             else
@@ -326,6 +330,7 @@ DoubleNode *doMulDiv(Token *expression, DoubleNode *root)
                 root->right = Node();
                 root->right = doPow(leftExp, root->right);
                 tempn = doMulDiv(rightExp, tempn);
+                free(expression);
                 return tempn;
             }
 
@@ -341,6 +346,8 @@ DoubleNode *doMulDiv(Token *expression, DoubleNode *root)
     {
         root->right = Node();
         root->right = doPow(expression, root->right);
+        free(expression);
+
         return root;
     }
 }
@@ -378,6 +385,7 @@ DoubleNode *doPow(Token *expression, DoubleNode *root)
             root->right = Node();
             root->left = doParen(leftExp, root->left);
             root->right = doPow(rightExp, root->right);
+            free(expression);
             return root;
         }
         ptr++;
@@ -427,6 +435,7 @@ DoubleNode *doParen(Token *expression, DoubleNode *root)
                 endpointer->type = endexp;
                 root->right = Node();
                 root->right = doParen(rightExp, root->right);
+                free(expression);
                 return root;
             }
             ptr = temptr;
@@ -447,41 +456,46 @@ DoubleNode *doNumber(Token *ptr, DoubleNode *root)
         root->token.value = ptr->value;
         root->left = NULL;
         root->right = NULL;
+        free(ptr);
         return root;
     }
     else if (ptr->type == left_paren || ptr->type == right_paren)
     {
         printf("sad");
+        free(ptr);
         return root;
     }
     printf("error");
     return root;
 }
 
-int computeO(DoubleNode *root,int o){
-        if (root->token.type == number) {
-            return root->token.value;
-        }
-        if (root == NULL) {
-            return 0;
-        }
-        o = computeO(root->left,o);
-        switch (root->token.type) {
-            case addition:
-                return o + computeO(root->right,o);
-            case subtract:
-                return o - computeO(root->right,o);
-            case multiply:
-                return o * computeO(root->right,o);
-            case divide:
-                return o / computeO(root->right,o);
-        }
+int computeO(DoubleNode *root, int o)
+{
+    if (root->token.type == number)
+    {
+        return root->token.value;
     }
-int compute(DoubleNode *root){
-    return computeO(root,0);
+    if (root == NULL)
+    {
+        return 0;
+    }
+    o = computeO(root->left, o);
+    switch (root->token.type)
+    {
+    case addition:
+        return o + computeO(root->right, o);
+    case subtract:
+        return o - computeO(root->right, o);
+    case multiply:
+        return o * computeO(root->right, o);
+    case divide:
+        return o / computeO(root->right, o);
+    }
 }
-
-
+int compute(DoubleNode *root)
+{
+    return computeO(root, 0);
+}
 
 int main()
 {
@@ -495,7 +509,7 @@ int main()
     DoubleNode *tree = createTree(expression);
     print2D(tree, 0);
     int answer = compute(tree);
-    printf("answer is: %d\n",answer);
+    printf("answer is: %d\n", answer);
     free(expression);
     return 0;
 }
