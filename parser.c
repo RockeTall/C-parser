@@ -38,6 +38,8 @@ DoubleNode *doPow(Token *expression, DoubleNode *root);
 DoubleNode *doParen(Token *expression, DoubleNode *root);
 DoubleNode *doNumber(Token *expression, DoubleNode *root);
 DoubleNode *Node();
+int compute(DoubleNode *root);
+int computeO(DoubleNode *root,int o);
 void printExpression(Token *ptr);
 void printToken(Token token);
 
@@ -279,6 +281,7 @@ DoubleNode *doAddSub(Token *expression, DoubleNode *root)
         return root;
     }
 }
+
 DoubleNode *doMulDiv(Token *expression, DoubleNode *root)
 {
     Token *ptr = expression;
@@ -341,6 +344,7 @@ DoubleNode *doMulDiv(Token *expression, DoubleNode *root)
         return root;
     }
 }
+
 DoubleNode *doPow(Token *expression, DoubleNode *root)
 {
     Token *ptr = expression;
@@ -380,6 +384,7 @@ DoubleNode *doPow(Token *expression, DoubleNode *root)
     }
     return doParen(expression, root);
 }
+
 DoubleNode *doParen(Token *expression, DoubleNode *root)
 {
     Token *ptr = expression;
@@ -432,6 +437,7 @@ DoubleNode *doParen(Token *expression, DoubleNode *root)
     }
     return doNumber(expression, root);
 }
+
 DoubleNode *doNumber(Token *ptr, DoubleNode *root)
 {
 
@@ -451,6 +457,32 @@ DoubleNode *doNumber(Token *ptr, DoubleNode *root)
     printf("error");
     return root;
 }
+
+int computeO(DoubleNode *root,int o){
+        if (root->token.type == number) {
+            return root->token.value;
+        }
+        if (root == NULL) {
+            return 0;
+        }
+        o = computeO(root->left,o);
+        switch (root->token.type) {
+            case addition:
+                return o + computeO(root->right,o);
+            case subtract:
+                return o - computeO(root->right,o);
+            case multiply:
+                return o * computeO(root->right,o);
+            case divide:
+                return o / computeO(root->right,o);
+        }
+    }
+int compute(DoubleNode *root){
+    return computeO(root,0);
+}
+
+
+
 int main()
 {
     char input[100];
@@ -462,6 +494,8 @@ int main()
     printf("yay\n");
     DoubleNode *tree = createTree(expression);
     print2D(tree, 0);
+    int answer = compute(tree);
+    printf("answer is: %d\n",answer);
     free(expression);
     return 0;
 }
