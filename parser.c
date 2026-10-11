@@ -42,6 +42,7 @@ int compute(DoubleNode *root);
 int computeO(DoubleNode *root, int o);
 void printExpression(Token *ptr);
 void printToken(Token token);
+void freeTree(DoubleNode *root);
 
 DoubleNode *Node()
 {
@@ -94,14 +95,6 @@ void printToken(Token token)
             "right_paren",
             "endexp"};
 
-    if (token.type > 13)
-    {
-        printf("type: %d | value %d\n", token.type, token.value);
-    }
-    else
-    {
-        printf("type: %s | value %d\n", types[token.type], token.value);
-    }
 }
 void printExpression(Token *ptr)
 {
@@ -121,7 +114,7 @@ Token *tokenizeString(char *input)
     if (ptr == NULL)
     {
         printf("memorry error");
-        exit(0);
+        exit(1);
     }
     end = ptr + size;
     first = ptr;
@@ -190,7 +183,7 @@ Token *tokenizeString(char *input)
         {
             printf("unknown var\n");
             free(first);
-            exit(0);
+            exit(1);
         }
         ptr++;
     }
@@ -237,11 +230,11 @@ DoubleNode *doAddSub(Token *expression, DoubleNode *root)
         if ((ptr->type == subtract || ptr->type == addition) && parenCount == 0)
         {
             Token *leftExp = malloc((ptr - expression) * sizeof(Token) + sizeof(Token));
-            printf("size %zu\n", ((ptr - expression) * sizeof(Token) + sizeof(Token)) / sizeof(Token));
             memcpy(leftExp, expression, (ptr - expression) * sizeof(Token));
             Token *endpointer = leftExp + (ptr - expression);
             endpointer->type = endexp;
             size_t size = (expression + tokenLength(expression) - ptr);
+            
             Token *rightExp = malloc(size * sizeof(Token));
             memcpy(rightExp, ptr + 1, size * sizeof(Token) - sizeof(Token));
             endpointer = rightExp + size - 1;
@@ -253,7 +246,8 @@ DoubleNode *doAddSub(Token *expression, DoubleNode *root)
                 root->left = Node();
                 root->left = doMulDiv(leftExp, root->left);
                 root = doAddSub(rightExp, root);
-                free(expression);
+                free(leftExp);  
+                free(rightExp); 
                 return root;
             }
             else
@@ -264,7 +258,8 @@ DoubleNode *doAddSub(Token *expression, DoubleNode *root)
                 root->right = Node();
                 root->right = doMulDiv(leftExp, root->right);
                 tempn = doAddSub(rightExp, tempn);
-                free(expression);
+                free(leftExp);  
+                free(rightExp);
                 return tempn;
             }
 
@@ -280,7 +275,6 @@ DoubleNode *doAddSub(Token *expression, DoubleNode *root)
     {
         root->right = Node();
         root->right = doMulDiv(expression, root->right);
-        free(expression);
         return root;
     }
 }
@@ -304,22 +298,24 @@ DoubleNode *doMulDiv(Token *expression, DoubleNode *root)
         {
 
             Token *leftExp = malloc((ptr - expression) * sizeof(Token) + sizeof(Token));
-            printf("size %zu\n", ((ptr - expression) * sizeof(Token) + sizeof(Token)) / sizeof(Token));
             memcpy(leftExp, expression, (ptr - expression) * sizeof(Token));
             Token *endpointer = leftExp + (ptr - expression);
             endpointer->type = endexp;
             size_t size = (expression + tokenLength(expression) - ptr);
+
             Token *rightExp = malloc(size * sizeof(Token));
             memcpy(rightExp, ptr + 1, size * sizeof(Token) - sizeof(Token));
             endpointer = rightExp + size - 1;
             endpointer->type = endexp;
+
             if (root->token.type == 0)
             {
                 root->token.type = ptr->type;
                 root->left = Node();
                 root->left = doPow(leftExp, root->left);
                 root = doMulDiv(rightExp, root);
-                free(expression);
+                free(leftExp);  
+                free(rightExp);
                 return root;
             }
             else
@@ -330,7 +326,8 @@ DoubleNode *doMulDiv(Token *expression, DoubleNode *root)
                 root->right = Node();
                 root->right = doPow(leftExp, root->right);
                 tempn = doMulDiv(rightExp, tempn);
-                free(expression);
+                free(leftExp);  
+                free(rightExp);
                 return tempn;
             }
 
@@ -346,8 +343,6 @@ DoubleNode *doMulDiv(Token *expression, DoubleNode *root)
     {
         root->right = Node();
         root->right = doPow(expression, root->right);
-        free(expression);
-
         return root;
     }
 }
@@ -372,20 +367,22 @@ DoubleNode *doPow(Token *expression, DoubleNode *root)
             root->token.type = ptr->type;
 
             Token *leftExp = malloc((ptr - expression) * sizeof(Token) + sizeof(Token));
-            printf("size %zu\n", ((ptr - expression) * sizeof(Token) + sizeof(Token)) / sizeof(Token));
             memcpy(leftExp, expression, (ptr - expression) * sizeof(Token));
             Token *endpointer = leftExp + (ptr - expression);
             endpointer->type = endexp;
             size_t size = (expression + tokenLength(expression) - ptr);
+
             Token *rightExp = malloc(size * sizeof(Token));
             memcpy(rightExp, ptr + 1, size * sizeof(Token) - sizeof(Token));
             endpointer = rightExp + size - 1;
             endpointer->type = endexp;
+
             root->left = Node();
             root->right = Node();
             root->left = doParen(leftExp, root->left);
             root->right = doPow(rightExp, root->right);
-            free(expression);
+            free(leftExp);  
+            free(rightExp);
             return root;
         }
         ptr++;
@@ -402,7 +399,7 @@ DoubleNode *doParen(Token *expression, DoubleNode *root)
         {
             Token *temptr = ptr + 1;
             int parenCount = 0;
-            while (temptr->type != right_paren || parenCount != 0)
+            while (temptr->type != endexp && (temptr->type != right_paren || parenCount != 0))
             {
                 if (temptr->type == left_paren)
                 {
@@ -414,11 +411,14 @@ DoubleNode *doParen(Token *expression, DoubleNode *root)
                 }
                 temptr++;
             }
-            printf("yamaha\n");
+            if (temptr->type == endexp)
+            {
+                printf("missing )\n");
+                exit(1);
+            }
             Token *leftExp = malloc((temptr - ptr) * sizeof(Token));
             memcpy(leftExp, ptr + 1, (temptr - ptr) * sizeof(Token) - sizeof(Token));
             Token *endpointer = leftExp + (temptr - ptr) - 1;
-            printf("fitst %p last %p", leftExp, endpointer);
             endpointer->type = endexp;
             root->left = Node();
             if ((temptr + 1)->type == endexp)
@@ -428,19 +428,22 @@ DoubleNode *doParen(Token *expression, DoubleNode *root)
             else
             {
                 size_t size = (expression + tokenLength(expression) - temptr);
-
                 Token *rightExp = malloc(size * sizeof(Token));
                 memcpy(rightExp, temptr + 1, size * sizeof(Token) - sizeof(Token));
                 endpointer = rightExp + size - 1;
                 endpointer->type = endexp;
+
                 root->right = Node();
                 root->right = doParen(rightExp, root->right);
-                free(expression);
+                free(leftExp);  
+                free(rightExp);
                 return root;
             }
             ptr = temptr;
-
+            DoubleNode *oldRoot = root;
             root = doAddSub(leftExp, root->left);
+            free(leftExp);  
+            free(oldRoot);
         }
         ptr++;
     }
@@ -456,13 +459,10 @@ DoubleNode *doNumber(Token *ptr, DoubleNode *root)
         root->token.value = ptr->value;
         root->left = NULL;
         root->right = NULL;
-        free(ptr);
         return root;
     }
     else if (ptr->type == left_paren || ptr->type == right_paren)
     {
-        printf("sad");
-        free(ptr);
         return root;
     }
     printf("error");
@@ -471,14 +471,15 @@ DoubleNode *doNumber(Token *ptr, DoubleNode *root)
 
 int computeO(DoubleNode *root, int o)
 {
-    if (root->token.type == number)
-    {
-        return root->token.value;
-    }
     if (root == NULL)
     {
         return 0;
     }
+    if (root->token.type == number)
+    {
+        return root->token.value;
+    }
+
     o = computeO(root->left, o);
     switch (root->token.type)
     {
@@ -489,27 +490,53 @@ int computeO(DoubleNode *root, int o)
     case multiply:
         return o * computeO(root->right, o);
     case divide:
-        return o / computeO(root->right, o);
+    {
+        int divby = computeO(root->right, o);
+        if (divby == 0)
+        {
+            printf("divided by zero\n");
+            exit(1);
+        }
+        return o / divby;
     }
+    case power:
+        return (int)round(pow(o, computeO(root->right, o)));
+    }
+    return 0;
 }
+
 int compute(DoubleNode *root)
 {
     return computeO(root, 0);
 }
 
+void freeTree(DoubleNode *root)
+{
+    if (root == NULL)
+        return;
+    freeTree(root->left);
+    freeTree(root->right);
+    free(root);
+}
+
+
 int main()
 {
     char input[100];
-    printf("Hello, World!\n");
-    scanf("%[^\n]%*c", input);
+    printf("Enter arithmetic problem\n");
+    scanf("%99[^\n]%*c", input);
     printf("You entered: %s\n", input);
+
     Token *expression = tokenizeString(input);
     printExpression(expression);
-    printf("yay\n");
+
     DoubleNode *tree = createTree(expression);
     print2D(tree, 0);
+
     int answer = compute(tree);
     printf("answer is: %d\n", answer);
+
+    freeTree(tree);
     free(expression);
     return 0;
 }
